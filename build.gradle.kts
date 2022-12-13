@@ -14,6 +14,10 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+    implementation("org.testcontainers:neo4j:1.17.6")
+//    implementation("org.neo4j:neo4j:4.4.0")
+    implementation("org.neo4j.driver:neo4j-java-driver:4.4.0")
+
 }
 
 tasks.test {
