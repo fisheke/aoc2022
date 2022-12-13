@@ -1,9 +1,4 @@
-package day8
-
 import java.io.File
-
-val red = "\u001b[31m"
-val reset = "\u001b[0m"
 
 fun main() {
     println("Day 8")

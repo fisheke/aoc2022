@@ -1,10 +1,4 @@
-package day10
-
-import load
 import java.lang.Math.floor
-
-val red = "\u001b[31m"
-val reset = "\u001b[0m"
 
 fun main() {
     println("Day 10")
@@ -33,7 +27,7 @@ fun main() {
         if (col == 0) { col = 40 }
 //        if (abs((it.first)-1 - it.second) < 2)Ï
 
-        val isVisible = isVisible(col-1, register)
+        val isVisible = isVisible(col - 1, register)
 
         if (isVisible)
             print(red + "#" + reset)

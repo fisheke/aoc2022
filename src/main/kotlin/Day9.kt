@@ -1,5 +1,3 @@
-package day9
-
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.sign

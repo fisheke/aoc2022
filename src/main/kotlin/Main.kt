@@ -1,3 +1,6 @@
+val red = "\u001b[31m"
+val reset = "\u001b[0m"
+
 fun main(args: Array<String>) {
     println("Hello World!")
 
