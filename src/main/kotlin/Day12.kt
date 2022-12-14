@@ -6,20 +6,28 @@ import org.testcontainers.containers.Neo4jContainer
 import org.testcontainers.utility.DockerImageName
 
 fun main() {
-    val grid = loadGrid()
+    val grid = loadGrid("day12/test.input")
 
-    val createStatements = grid.map { "(:Square {x: ${it.x}, y: ${it.y}, z: ${it.height}})" }
-        .joinToString(", ", "CREATE ")
+    val start = grid.find { it.isStart }!!
+    val end = grid.find { it.isEnd }!!
 
-    println(createStatements)
-
+    val createStatements = grid.map { "(:Square {x: ${it.x}, y: ${it.y}, z: ${it.height}})" }.joinToString(", ", "CREATE ")
     val listStatement = "MATCH (n:Square {x:4, y:3}) RETURN n"
+    val shortestPathStmt = "MATCH (from:Square {x:${start.x}, y:${start.y}}), (to:Square {x:${end.x}, y:${end.y}}), p = shortestPath((from)-[*]->(to)) RETURN p"
+
     val neo = startNeo()
+    writeInNeo("CREATE INDEX ON :Square(x)", neo.first) { println(it.consume()) }
+    writeInNeo("CREATE INDEX ON :Square(y)", neo.first) { println(it.consume()) }
     writeInNeo(createStatements, neo.first) {println(it.consume()) }
     readFromNeo(listStatement, neo.first) { it.list().map { r -> r.toString() }}.forEach { println(it) }
     grid.forEach { createRelationsFor(it, grid, neo) }
 
-    readFromNeo("MATCH (from:Square {x:0, y:0}), (to:Square {x:5, y:2}), p = shortestPath((from)-[]-(to)) RETURN p", neo.first) { println(it.consume()) }
+    readFromNeo(shortestPathStmt, neo.first) {
+        val record = it.single()
+        val asPath = record.get("p").asPath()
+        asPath.forEach { println(it.relationship().type()) }
+        println(asPath.length())
+    }
 
     neo.second.stop()
 
@@ -46,14 +54,14 @@ fun createRelationsFor(it: Node, grid: List<Node>, neo: Pair<Driver, Neo4jContai
 private fun createRelationshipFromTo(grid: List<Node>, neo: Pair<Driver, Neo4jContainer<*>>, fromX: Int, fromY: Int, toX: Int, toY: Int, fromHeight: Int, type: String) {
     val up = getNodeFor(toX, toY, grid)?.height
     if (up != null && up <= fromHeight + 1) {
-        writeInNeo("MATCH (from:Square {x: $fromX, y:$fromY}), (to:Square {x: $toX, y:$toY}) CREATE (from)-[:$type]->(to)", neo.first) { println(it.consume()) };
+        writeInNeo("MATCH (from:Square {x: $fromX, y:$fromY}) WITH from MATCH (to:Square {x: $toX, y:$toY}) CREATE (from)-[:$type]->(to)", neo.first) { println(it.consume()) };
     }
 }
 
 data class Node(val x: Int, val y: Int, val height: Int, val isStart: Boolean, val isEnd: Boolean)
 
-fun loadGrid(): List<Node> {
-    val input = load("day12/test.input")
+fun loadGrid(inputFile: String): List<Node> {
+    val input = load(inputFile)
     val inputLines = input.readLines()
 
     val rows = inputLines.size
@@ -102,7 +110,7 @@ fun <T> writeInNeo(stmt: String, driver: Driver, extractor: (Result) -> T): T {
     return driver.session().use { session ->
         session.writeTransaction { tx ->
 //            val query = Query("CREATE (a:Greeting) SET a.message = \$message RETURN a.message + ', from node ' + id(a)", parameters("message", "testing"))
-            val result = tx.run(Query(stmt))
+            val result = tx.run(stmt)
             extractor(result)
         }
     }
